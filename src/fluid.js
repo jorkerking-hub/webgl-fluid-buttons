@@ -1143,6 +1143,8 @@ let colorUpdateTimer = 0.0;
 let ambientTimer = 0.0;
 let flowTime = 0.0;
 let hoverBoost = 1.0;
+let pointerTargetY = 0.5;
+let pointerFlowY = 0.5;
 let emitterWarmup = 0.0;
 let introTime = 0.0;
 
@@ -1153,6 +1155,7 @@ update();
 function update () {
     const dt = calcDeltaTime();
     flowTime += dt * hoverBoost;
+    pointerFlowY += (pointerTargetY - pointerFlowY) * Math.min(1.0, dt * 4.8);
     introTime += dt;
     ambientTimer += dt * hoverBoost;
     emitterWarmup = Math.min(1.0, emitterWarmup + dt * 6.0);
@@ -1166,7 +1169,8 @@ function update () {
         color.g *= emitterWarmup;
         color.b *= emitterWarmup;
         const x = 1.14;
-        const y = 0.5 + Math.sin(flowTime * 0.66) * 0.12 + Math.sin(flowTime * 2.1) * 0.025;
+        const pointerPull = (pointerFlowY - 0.5) * 0.22 * Math.min(1.0, hoverBoost - 1.0);
+        const y = 0.5 + Math.sin(flowTime * 0.66) * 0.12 + Math.sin(flowTime * 2.1) * 0.025 + pointerPull;
         const dx = -(23 + Math.sin(flowTime * 0.48) * 5) * hoverBoost * emitterWarmup * entryBoost;
         const dy = (Math.cos(flowTime * 0.66) * 5 + Math.sin(flowTime * 1.8) * 2) * hoverBoost * emitterWarmup * entryBoost;
         splat(x, y, dx, dy, color);
@@ -1656,7 +1660,12 @@ window.addEventListener('message', event => {
     if (event.source !== window.parent) return;
     if (window.location.protocol !== 'file:' && window.location.protocol !== 'blob:' && event.origin !== window.location.origin) return;
     const data = event.data;
-    if (!data || data.type !== 'fluid-hover') return;
-    hoverBoost = data.active ? 1.9 : 1.0;
+    if (!data) return;
+    if (data.type === 'fluid-hover') {
+        hoverBoost = data.active ? 2.05 : 1.0;
+        if (!data.active) pointerTargetY = 0.5;
+    }
+    if (data.type === 'fluid-pointer' && Number.isFinite(data.y)) {
+        pointerTargetY = Math.max(0.16, Math.min(0.84, data.y));
+    }
 });
-
